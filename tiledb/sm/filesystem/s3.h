@@ -175,8 +175,9 @@ class S3 {
 
   /**
    * Lists the objects that start with `prefix`. Full URI paths are
-   * retrieved for the matched objects. If a delimiter is specified,
-   * the URI paths will be truncated to the first delimiter character.
+   * retrieved for the matched objects. Error if prefix does not exist.
+   * If a delimiter is specified, the URI paths will be truncated to
+   * the first delimiter character.
    * For instance, if there is a hierarchy:
    *
    * - `foo/bar/baz`
@@ -510,6 +511,15 @@ class S3 {
    * caller must hold the multipart data structure mutex.
    */
   Status initiate_multipart_request(Aws::Http::URI aws_uri);
+
+  /* ls implementation, with argument to override erroring on non-existent
+   * prefix */
+  Status ls_impl(
+      const URI& prefix,
+      std::vector<std::string>* paths,
+      const std::string& delimiter = "/",
+      int max_paths = -1,
+      bool error_not_exists = true) const;
 
   /**
    * Return the given authority and path strings joined with a '/'

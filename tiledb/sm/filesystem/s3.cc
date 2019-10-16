@@ -585,16 +585,17 @@ Status S3::is_dir(const URI& uri, bool* exists) const {
   // Potentially add `/` to the end of `uri`
   auto uri_dir = uri.add_trailing_slash();
   std::vector<std::string> paths;
-  RETURN_NOT_OK(ls(uri_dir, &paths, "/", 1));
+  RETURN_NOT_OK(ls_impl(uri_dir, &paths, "/", 1, false));
   *exists = (bool)paths.size();
   return Status::Ok();
 }
 
-Status S3::ls(
+Status S3::ls_impl(
     const URI& prefix,
     std::vector<std::string>* paths,
     const std::string& delimiter,
-    int max_paths) const {
+    int max_paths,
+    bool error_not_exists) const {
   RETURN_NOT_OK(init_client());
 
   auto prefix_str = prefix.to_string();
@@ -652,7 +653,21 @@ Status S3::ls(
     }
   }
 
+  if ((paths->size() == 0) && (error_not_exists == true)) {
+    return LOG_STATUS(Status::S3Error(
+        std::string("Error while listing with prefix '") + prefix_str +
+        "' and delimiter '" + delimiter + "': " + "prefix does not exist"));
+  }
+
   return Status::Ok();
+}
+
+Status S3::ls(
+    const URI& prefix,
+    std::vector<std::string>* paths,
+    const std::string& delimiter,
+    int max_paths) const {
+  return S3::ls_impl(prefix, paths, delimiter, max_paths, true);
 }
 
 Status S3::move_object(const URI& old_uri, const URI& new_uri) {
